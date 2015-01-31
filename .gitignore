@@ -1,0 +1,6 @@
+*
+
+!.gitignore
+!_install/
+!download.php
+!download.sh

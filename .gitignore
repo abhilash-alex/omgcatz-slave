@@ -1,6 +1,7 @@
 *
 
 !.gitignore
-!_install/
+!*/
+!setup.sh
 !download.php
 !download.sh

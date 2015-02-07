@@ -1,7 +1,6 @@
 #!/bin/bash
 
-SCRIPT="${BASH_SOURCE[0]}"
-DIR="$(cd "$( dirname $SCRIPT )" && pwd)"
+DIR="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
 INDENT="%-34s"
 BAD=0
 
@@ -42,7 +41,7 @@ checkCommand "php" && success || please
 
 # If they need to install stuff let them know.
 if [ $BAD -ne 0 ]; then
-  printf "\nPlease install the missing commands ($BAD) and run $SCRIPT\n"
+  printf "\nPlease install the missing commands ($BAD) and run this script again.\n"
   exit 1
 fi
 

@@ -1,124 +1,104 @@
 #!/bin/bash
-# this script can download, tag, and archive music
 
-# paths to stuff
+
+function get_file_type() {
+  file_output="$(file "$1")"
+
+  if [ -n "$(echo "$file_output" | grep -i -E "(MPEG ADTS|Audio file with ID3)")" ]; then
+    echo "mp3"
+  elif [ -n "$(echo "$file_output" | grep -i "MPEG v4")" ]; then
+    echo "m4a"
+  elif [ -n "$(echo "$file_output" | grep -i "WAVE audio")" ]; then
+    echo "wav"
+  elif [ -n "$(echo "$file_output" | grep -i "Adaptive Multi-Rate")" ]; then
+    echo "amr"
+  elif [ -n "$(echo "$file_output" | grep -i "Microsoft ASF")" ]; then
+    echo "wma"
+  elif [ -n "$(echo "$file_output" | grep -i "AIFF")" ]; then
+    echo "aif"
+  elif [ -n "$(echo "$file_output" | grep -i "AIFF-C")" ]; then
+    echo "aifc"
+  elif [ -n "$(echo "$file_output" | grep -i "FLAC")" ]; then
+    echo "flac"
+  elif [ -n "$(echo "$file_output" | grep -i "Ogg")" ]; then
+    echo "ogg"
+  elif [ -n "$(echo "$file_output" | grep -i "layer II,")" ]; then
+    echo "mp2"
+  fi
+}
+
+function download_artwork() {
+  [ ! -f "$artwork_save" ] && curl -Lso "$artwork_save" "$artwork_url"
+}
+
+
+while read -r line; do
+  key="$(echo "$line" | grep -o "[^\:]*")"
+  value="$(echo "$line" | grep -o "'.*'")"
+  eval $key="$value"
+done <<< "$(echo -en "$@")"
+
 ARCHIVES="archives"
 SONGS="songs"
 ARTWORK="artwork"
 
-# set arguments to variables
-TITLE="$(echo "$1" | tr -d '\' | tr -s ' ' | sed 's|\ *$||')"
-TAG_TITLE="$2"
-ARTIST="$(echo "$3" | tr -d '\' | tr -s ' ')"
-ALBUM="$(echo "$4" | tr -d '\' | tr -s ' ')"
-IMG="$5"
-TRACK_NUMBER="$6"
-if [ "$TRACK_NUMBER" != "false" ]; then
-	TRACK_NUMBER_SPACE="$TRACK_NUMBER. "
+if [ -n "$mix_artwork" ]; then
+  artwork_url="$mix_artwork"
+  artwork_save="$ARTWORK/$mix_slug.$img_ext"
+elif [ -n "$song_artwork" ]; then
+  artwork_url="$song_artwork"
+  artwork_save="$ARTWORK/$song_id.$img_ext"
 fi
-TOTAL_TRACKS="$7"
-URL="$8"
-MIX_TITLE="$(echo "$9" | cut -d/ -f3)"
-RECURSIVE="${10}"
-DOWNLOAD_ID="${11}"
-SONG_ID="${12}"
 
-# paths to more stuff
-SONG_SAVE="$SONGS/$SONG_ID"
-ZIP_SAVE="$MIX_TITLE.zip"
-ZIP_DIR="$MIX_TITLE/$DOWNLOAD_ID/"
+if [ -n "$song_number" ]; then
+  song_number_fancy="$(printf "%02d" "$song_number"). "
+fi
 
-if [ "$(echo "$IMG" | grep -E "(images)")" ]; then
-	ARTWORK_SAVE="$ARTWORK/$SONG_ID.jpeg"
+song_name_clean="$(echo "$song_title" | iconv -f utf-8 -t ASCII -c)"
+song_save_client="$song_number_fancy$song_name_clean"
+song_save_server="$SONGS/$song_id"
+zip_dir="$ARCHIVES/$mix_slug/$download_id"
+zip_save="$mix_slug.zip"
+
+if [ -f "$song_save_server.m4a" ]; then
+	song_ext="m4a"
+elif [ -f "$song_save_server.mp3" ]; then
+	song_ext="mp3"
 else
-	ARTWORK_SAVE="$ARTWORK/$MIX_TITLE.png"
+	curl -Lso "$song_save_server.part" "$song_url"
+  song_ext="$(get_file_type "$song_save_server.part")"
+	mv "$song_save_server.part" "$song_save_server.$song_ext"
 fi
 
-SAVE_TITLE="${TRACK_NUMBER_SPACE}$(echo "$TITLE" | sed 's|/|-|g;s|^\.||g' | tr -d '\#')"
+song_save_server="$song_save_server.$song_ext"
+song_save_client="$song_save_client.$song_ext"
+touch "$song_save_server"
 
-[ "$TAG_TITLE" == "false" ] && unset TITLE
-[ "$ARTIST" == "false" ] && unset ARTIST
-[ "$ALBUM" == "false" ] && unset ALBUM
-[ "$IMG" == "false" ] && unset IMG
-[ "$TRACK_NUMBER" == "false" ] && unset TRACK_NUMBER TOTAL_TRACKS
-[ "$RECURSIVE" == "false" ] && unset RECURSIVE
+if [ "$song_ext" == "mp3" ]; then
+	./eyeD3 --remove-all-objects -t "$song_title" -a "$song_artist" -A "$song_album" -n "$song_number" -N "$total_songs" "$song_save_server" &> /dev/null
 
-while [ -f "SONG_SAVE".part ]; do
-	# if the song is being downloaded by someone else
-
-	sleep 2
-done
-
-if [ -f "$SONG_SAVE".m4a ]; then
-	# if m4a exists
-
-	EXT=".m4a"
-	touch "$SONG_SAVE$EXT"
-elif [ -f "$SONG_SAVE".mp3 ]; then
-	# if mp3 exists
-
-	EXT=".mp3"
-	touch "$SONG_SAVE$EXT"
-else
-	# if song doesn't exist
-
-	curl -Lso "$SONG_SAVE".part "$URL"
-
-	if [ "$(file "$SONG_SAVE".part | grep -i -E "(MPEG ADTS|Audio file with ID3)")" ]; then
-    EXT=".mp3"
-  elif [ "$(file "$SONG_SAVE".part | grep -i "MPEG v4")" ]; then
-    EXT=".m4a"
-  elif [ "$(file "$SONG_SAVE".part | grep -i "WAVE audio")" ]; then
-    EXT=".wav"
-  elif [ "$(file "$SONG_SAVE".part | grep -i "Adaptive Multi-Rate")" ]; then
-    EXT=".amr"
-  elif [ "$(file "$SONG_SAVE".part | grep -i "Microsoft ASF")" ]; then
-    EXT=".wma"
-  elif [ "$(file "$SONG_SAVE".part | grep -i "AIFF")" ]; then
-    EXT=".aif"
-  elif [ "$(file "$SONG_SAVE".part | grep -i "AIFF-C")" ]; then
-    EXT=".aifc"
-  elif [ "$(file "$SONG_SAVE".part | grep -i "FLAC")" ]; then
-    EXT=".flac"
-  elif [ "$(file "$SONG_SAVE".part | grep -i "Ogg")" ]; then
-    EXT=".ogg"
-  elif [ "$(file "$SONG_SAVE".part | grep -i "layer II,")" ]; then
-    EXT=".mp2"
-  else
-    EXT=".txt"
-    echo "Unable to download: $URL. Sorry ):" > "$SONG_SAVE".part
-  fi
-
-	mv "$SONG_SAVE".part "$SONG_SAVE$EXT"
-fi
-
-# tag artwork
-if [ "$EXT" == ".mp3" ]; then
-	./eyeD3 --remove-images -t "$TITLE" -a "$ARTIST" -A "$ALBUM" -n "$TRACK_NUMBER" -N "$TOTAL_TRACKS" "$SONG_SAVE$EXT" &> /dev/null
-	if [ -n "$IMG" ]; then
-		[ ! -f "$ARTWORK_SAVE" ] && curl -Lso "$ARTWORK_SAVE" "$IMG"
-		./eyeD3 --add-image="$ARTWORK_SAVE":FRONT_COVER "$SONG_SAVE$EXT" &> /dev/null
+	if [ -n "$artwork_save" ]; then
+		download_artwork
+		./eyeD3 --add-image="$artwork_save":FRONT_COVER "$song_save_server" &> /dev/null
 	fi
-elif [ "$EXT" == ".m4a" ]; then
-	[ -n "$TOTAL_TRACKS" ] && TOTAL_TRACKS="/$TOTAL_TRACKS"
-	./AtomicParsley "$SONG_SAVE$EXT" -o "$SONG_SAVE.temp" --title "$TITLE" --artist "$ARTIST" --album "$ALBUM" --tracknum "$TRACK_NUMBER$TOTAL_TRACKS" --artwork "REMOVE_ALL" &> /dev/null
-	if [ -n "$IMG" ]; then
-		[ ! -f "$ARTWORK_SAVE" ] && curl -Lso "$ARTWORK_SAVE" "$IMG"
-		./AtomicParsley "$SONG_SAVE.temp" -o "$SONG_SAVE$EXT" --artwork "$ARTWORK_SAVE" &> /dev/null
-		rm -f "$SONG_SAVE.temp"
+elif [ "$song_ext" == "m4a" ]; then
+	[ -n "$total_songs" ] && slash_total_songs="/$total_songs"
+
+	./AtomicParsley "$song_save_server" -o "$song_save_server.temp" --title "$song_title" --artist "$song_artist" --album "$song_album" --tracknum "$song_number$slash_total_songs" --artwork "REMOVE_ALL" &> /dev/null
+
+	if [ -n "$artwork_save" ]; then
+		download_artwork
+		./AtomicParsley "$song_save_server.temp" -o "$song_save_server" --artwork "$artwork_save" &> /dev/null
+		rm -f "$song_save_server.temp"
 	else
-		mv "$SONG_SAVE.temp" "$SONG_SAVE$EXT"
+		mv "$song_save_server.temp" "$song_save_server"
 	fi
 fi
 
-if [ -n "$RECURSIVE" ]; then
-	# if we are adding to zip
-
-	mkdir -p "$ARCHIVES/$ZIP_DIR"
-	cp "$SONG_SAVE$EXT" "$ARCHIVES/$ZIP_DIR$SAVE_TITLE$EXT"
-	printf "$ARCHIVES/$ZIP_DIR$ZIP_SAVE\n$MIX_TITLE.zip\n$EXT"
+if [ -n "$recursive" ]; then
+	mkdir -p "$zip_dir"
+	cp "$song_save_server" "$zip_dir/$song_save_client"
+	echo -n "{\"path\": \"$zip_dir/$zip_save\", \"save\": \"$mix_slug.zip\"}"
 else
-	# if we are downloading single file
-
-	printf "$SONG_SAVE$EXT\n$SAVE_TITLE$EXT\n$EXT"
+	echo -n "{\"path\": \"$song_save_server\", \"save\": \"$song_save_client\"}"
 fi

@@ -3,5 +3,6 @@
 !.gitignore
 !*/
 !setup.sh
+!archive.php
 !download.php
 !download.sh

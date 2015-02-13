@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 function get_file_type() {
   file_output="$(file "$1")"
 

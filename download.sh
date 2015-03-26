@@ -53,20 +53,28 @@ if [ -n "$song_number" ]; then
   song_number_fancy="$(printf "%02d" "$song_number"). "
 fi
 
-song_name_clean="$(echo "$song_title" | iconv -f utf-8 -t ASCII -c)"
+song_name_clean="$(echo "$song_title" | iconv -f utf-8 -t ASCII -c | sed "s|/|:|g")"
 song_save_client="$song_number_fancy$song_name_clean"
 song_save_server="$SONGS/$song_id"
 zip_dir="$ARCHIVES/$mix_slug/$download_id"
-zip_save="$mix_slug.zip"
+
+if [ -z "tag_song_title" ]; then
+  unset song_title
+fi
 
 if [ -f "$song_save_server.m4a" ]; then
-	song_ext="m4a"
+  song_ext="m4a"
 elif [ -f "$song_save_server.mp3" ]; then
-	song_ext="mp3"
+  song_ext="mp3"
 else
-	curl -Lso "$song_save_server.part" "$song_url"
+  curl -Lso "$song_save_server.part" "$song_url"
   song_ext="$(get_file_type "$song_save_server.part")"
-	mv "$song_save_server.part" "$song_save_server.$song_ext"
+
+  if [ -n "$song_ext" ]; then
+    mv "$song_save_server.part" "$song_save_server.$song_ext"
+  else
+    echo -n "{\"error\": \"1\"}"
+  fi
 fi
 
 song_save_server="$song_save_server.$song_ext"
@@ -74,30 +82,31 @@ song_save_client="$song_save_client.$song_ext"
 touch "$song_save_server"
 
 if [ "$song_ext" == "mp3" ]; then
-	./eyeD3 --remove-all-objects -t "$song_title" -a "$song_artist" -A "$song_album" -n "$song_number" -N "$total_songs" "$song_save_server" &> /dev/null
+  ./eyeD3 --remove-all-objects -t "$song_title" -a "$song_artist" -A "$song_album" -n "$song_number" -N "$total_songs" "$song_save_server" &> /dev/null
 
-	if [ -n "$artwork_save" ]; then
-		download_artwork
-		./eyeD3 --add-image="$artwork_save":FRONT_COVER "$song_save_server" &> /dev/null
-	fi
+  if [ -n "$artwork_save" ]; then
+    download_artwork
+    ./eyeD3 --add-image="$artwork_save":FRONT_COVER "$song_save_server" &> /dev/null
+  fi
 elif [ "$song_ext" == "m4a" ]; then
-	[ -n "$total_songs" ] && slash_total_songs="/$total_songs"
+  [ -n "$total_songs" ] && slash_total_songs="/$total_songs"
 
-	./AtomicParsley "$song_save_server" -o "$song_save_server.temp" --title "$song_title" --artist "$song_artist" --album "$song_album" --tracknum "$song_number$slash_total_songs" --artwork "REMOVE_ALL" &> /dev/null
+  ./AtomicParsley "$song_save_server" -o "$song_save_server.temp" --title "$song_title" --artist "$song_artist" --album "$song_album" --tracknum "$song_number$slash_total_songs" --artwork "REMOVE_ALL" &> /dev/null
 
-	if [ -n "$artwork_save" ]; then
-		download_artwork
-		./AtomicParsley "$song_save_server.temp" -o "$song_save_server" --artwork "$artwork_save" &> /dev/null
-		rm -f "$song_save_server.temp"
-	else
-		mv "$song_save_server.temp" "$song_save_server"
-	fi
+  if [ -n "$artwork_save" ]; then
+    download_artwork
+    ./AtomicParsley "$song_save_server.temp" -o "$song_save_server" --artwork "$artwork_save" &> /dev/null
+    rm -f "$song_save_server.temp"
+  else
+    mv "$song_save_server.temp" "$song_save_server"
+  fi
 fi
 
 if [ -n "$recursive" ]; then
-	mkdir -p "$zip_dir"
-	cp "$song_save_server" "$zip_dir/$song_save_client"
-	echo -n "{\"path\": \"$zip_dir/$zip_save\", \"save\": \"$mix_slug.zip\"}"
+  mkdir -p "$zip_dir"
+  current_path="$(pwd)"
+  ln -s "$current_path/$song_save_server" "$current_path/$zip_dir/$song_save_client"
+  echo -n "{\"error\": \"0\"}"
 else
-	echo -n "{\"path\": \"$song_save_server\", \"save\": \"$song_save_client\"}"
+  echo -n "{\"error\": \"0\", \"path\": \"$song_save_server\", \"save\": \"$song_save_client\"}"
 fi

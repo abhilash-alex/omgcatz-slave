@@ -1,5 +1,7 @@
 <?php
 
+header("Access-Control-Allow-Origin: *");
+
 foreach ($_POST as $key => $value) {
   $_POST[$key] = escapeshellarg(preg_replace("~/~", "", $value));
 }

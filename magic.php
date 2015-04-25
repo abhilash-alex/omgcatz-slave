@@ -1,5 +1,7 @@
 <?php
 
+header("Access-Control-Allow-Origin: *");
+
 $filePath = $_GET["p"];
 $fileName = $_GET["s"];
 

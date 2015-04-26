@@ -27,7 +27,14 @@ function get_file_type() {
 }
 
 function download_artwork() {
-  [ ! -f "$artwork_save" ] && curl -Lso "$artwork_save" "$artwork_url"
+  if [ ! -f "$artwork_save" ]; then
+    curl -Lso "$artwork_save" "$artwork_url"
+    ./convert "$artwork_save" "$artwork_save"
+  fi
+}
+
+function atomicparsley_mv() {
+  mv "$song_save_server.temp" "$song_save_server"
 }
 
 
@@ -43,10 +50,10 @@ ARTWORK="artwork"
 
 if [ -n "$mix_artwork" ]; then
   artwork_url="$mix_artwork"
-  artwork_save="$ARTWORK/$mix_slug.$img_ext"
+  artwork_save="$ARTWORK/$mix_slug.jpg"
 elif [ -n "$song_artwork" ]; then
   artwork_url="$song_artwork"
-  artwork_save="$ARTWORK/$song_id.$img_ext"
+  artwork_save="$ARTWORK/$song_id.jpg"
 fi
 
 if [ -n "$song_number" ]; then
@@ -82,7 +89,8 @@ song_save_client="$song_save_client.$song_ext"
 touch "$song_save_server"
 
 if [ "$song_ext" == "mp3" ]; then
-  ./eyeD3 --remove-all-objects -t "$song_title" -a "$song_artist" -A "$song_album" -n "$song_number" -N "$total_songs" "$song_save_server" &> /dev/null
+  ./eyeD3 --remove-all "$song_save_server" &> /dev/null
+  ./eyeD3 -t "$song_title" -a "$song_artist" -A "$song_album" -n "$song_number" -N "$total_songs" "$song_save_server" &> /dev/null
 
   if [ -n "$artwork_save" ]; then
     download_artwork
@@ -91,14 +99,11 @@ if [ "$song_ext" == "mp3" ]; then
 elif [ "$song_ext" == "m4a" ]; then
   [ -n "$total_songs" ] && slash_total_songs="/$total_songs"
 
-  ./AtomicParsley "$song_save_server" -o "$song_save_server.temp" --title "$song_title" --artist "$song_artist" --album "$song_album" --tracknum "$song_number$slash_total_songs" --artwork "REMOVE_ALL" &> /dev/null
+  ./AtomicParsley "$song_save_server" -o "$song_save_server.temp" --title "$song_title" --artist "$song_artist" --album "$song_album" --tracknum "$song_number$slash_total_songs" --artwork REMOVE_ALL &> /dev/null && atomicparsley_mv
 
   if [ -n "$artwork_save" ]; then
     download_artwork
-    ./AtomicParsley "$song_save_server.temp" -o "$song_save_server" --artwork "$artwork_save" &> /dev/null
-    rm -f "$song_save_server.temp"
-  else
-    mv "$song_save_server.temp" "$song_save_server"
+    ./AtomicParsley "$song_save_server" -o "$song_save_server.temp" --artwork "$artwork_save" &> /dev/null && atomicparsley_mv
   fi
 fi
 

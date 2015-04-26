@@ -6,7 +6,7 @@ foreach ($_POST as $key => $value) {
   if (empty($value)) {
     unset($_POST[$key]);
   } else {
-    $_POST[$key] = escapeshellarg(html_entity_decode(trim($value))).PHP_EOL;
+    $_POST[$key] = escapeshellarg(str_replace(array("`",chr(96)),array("'","'"),html_entity_decode(trim($value)))).PHP_EOL;
   }
 }
 

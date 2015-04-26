@@ -34,6 +34,7 @@ cd "$DIR"
 checkCommand "curl" && success || please
 checkCommand "eyeD3" && success && ln -fs "$(which eyeD3)" ../eyeD3 || please
 checkCommand "AtomicParsley" && success && ln -fs "$(which AtomicParsley)" ../AtomicParsley || please
+checkCommand "convert" && success && ln -fs "$(which convert)" ../convert || please
 checkCommand "zip" && success && ln -fs "$(which zip)" ../zip || please
 checkCommand "find" && success && ln -fs "$(which find)" ../find || please
 checkCommand "file" && success || please

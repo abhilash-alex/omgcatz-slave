@@ -10,4 +10,4 @@ foreach ($_POST as $key => $value) {
   }
 }
 
-echo shell_exec("./download.sh " . json_encode($_POST, JSON_UNESCAPED_SLASHES));
+echo shell_exec("./download.sh " . json_encode($_POST, JSON_UNESCAPED_SLASHES, JSON_UNESCAPED_UNICODE));

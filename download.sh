@@ -65,7 +65,7 @@ song_save_client="$song_number_fancy$song_name_clean"
 song_save_server="$SONGS/$song_id"
 zip_dir="$ARCHIVES/$mix_slug/$download_id"
 
-if [ -z "tag_song_title" ]; then
+if [ -z "$tag_song_title" ]; then
   unset song_title
 fi
 

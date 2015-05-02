@@ -39,9 +39,10 @@ function atomicparsley_mv() {
 
 
 while read -r line; do
-  key="$(echo "$line" | grep -o "[^\:]*")"
-  value="$(echo "$line" | grep -o "'.*'")"
-  eval $key="$value"
+  key="$(echo "$line" | grep -o "[^\:]*" | tr -cd "[[:alpha:]]")"
+  value="$(echo "$line" | grep -o "\:.*" | sed -e "s/^://")"
+  [ -z "$key" ] || [ -z "$value" ] && continue
+  eval $key=$value
 done <<< "$(echo -en "$@")"
 
 ARCHIVES="archives"

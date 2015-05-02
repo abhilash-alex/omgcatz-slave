@@ -5,7 +5,7 @@ function get_file_type() {
 
   if [ -n "$(echo "$file_output" | grep -i -E "(MPEG ADTS|Audio file with ID3)")" ]; then
     echo "mp3"
-  elif [ -n "$(echo "$file_output" | grep -i "MPEG v4")" ]; then
+  elif [ -n "$(echo "$file_output" | grep -i -E "MPEG v4|MP4 v2")" ]; then
     echo "m4a"
   elif [ -n "$(echo "$file_output" | grep -i "WAVE audio")" ]; then
     echo "wav"
@@ -39,10 +39,10 @@ function atomicparsley_mv() {
 
 
 while read -r line; do
-  key="$(echo "$line" | grep -o "[^\:]*" | tr -cd "[[:alpha:]]")"
-  value="$(echo "$line" | grep -o "\:.*" | sed -e "s/^://")"
+  key="$(echo "$line" | grep -o "^[^:]*" | tr -cd "[[:alpha:]]_")"
+  value="$(echo "$line" | grep -o "\:.*" | sed "s/^://")"
   [ -z "$key" ] || [ -z "$value" ] && continue
-  eval $key=$value
+  eval $key="\"$(eval echo $value)\""
 done <<< "$(echo -en "$@")"
 
 ARCHIVES="archives"

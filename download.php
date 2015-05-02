@@ -1,7 +1,5 @@
 <?php
 
-header("Access-Control-Allow-Origin: *");
-
 foreach ($_POST as $key => $value) {
   if (empty($value)) {
     unset($_POST[$key]);

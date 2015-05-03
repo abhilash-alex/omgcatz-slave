@@ -91,7 +91,13 @@ touch "$song_save_server"
 
 if [ "$song_ext" == "mp3" ]; then
   ./eyeD3 --remove-all "$song_save_server" &> /dev/null
-  ./eyeD3 -t "$song_title" -a "$song_artist" -A "$song_album" -n "$song_number" -N "$total_songs" "$song_save_server" &> /dev/null
+
+  [ -n "$song_title" ] && t="-t \"$song_title\""
+  [ -n "$song_artist" ] && a="-a \"$song_artist\""
+  [ -n "$song_album" ] && A="-A \"$song_album\""
+  [ -n "$song_title" ] && t="-t \"$song_title\""
+  [ -n "$song_number" ] && N="-n $song_number -N $total_songs"
+  eval ./eyeD3 $t $a $A $N "$song_save_server" &> /dev/null
 
   if [ -n "$artwork_save" ]; then
     download_artwork
